@@ -163,3 +163,60 @@ To see other fields introduced by kubernetes after you have deployed the resourc
 
 ![alt text](images/22.19.png)
 ![alt text](images/22.20.png)
+
+### Creating a Replical set
+Let us create a rs.yaml manifest for a ReplicaSet object:
+
+                    #Part 1
+                    apiVersion: apps/v1
+                    kind: ReplicaSet
+                    metadata:
+                    name: nginx-rs
+                    spec:
+                    replicas: 3
+                    selector:
+                        matchLabels:
+                        app: nginx-pod
+                    #Part 2
+                    template:
+                        metadata:
+                        name: nginx-pod
+                        labels:
+                            app: nginx-pod
+                        spec:
+                        containers:
+                        - image: nginx:latest
+                            name: nginx-pod
+                            ports:
+                            - containerPort: 80
+                            protocol: TCP
+
+
+- apply it with
+
+                kubectl apply -f rs.yaml
+
+![alt text](images/22.21.png)
+
+The manifest file of ReplicaSet consist of the following fields:
+- apiVersion: This field specifies the version of kubernetes Api to which the object belongs. ReplicaSet belongs to apps/v1 apiVersion.
+- kind: This field specify the type of object for which the manifest belongs to. Here, it is ReplicaSet.
+- metadata: This field includes the metadata for the object. It mainly includes two fields: name and labels of the ReplicaSet.
+- spec: This field specifies the label selector to be used to select the Pods, number of replicas of the Pod to be run and the container or list of containers which the Pod will run. In the above example, we are running 3 replicas of nginx container.
+
+Let us check what Pods have been created:
+        kubectl get pods
+
+Here we see three ngix-pods with some random suffixes (e.g., -dzlrm) – it means, that these Pods were created and named automatically by some other object (higher level of abstraction) such as ReplicaSet.
+
+Try to delete one of the Pods:
+
+        kubectl delete pod nginx-rs-fpdgj
+
+You can see, that we still have all 3 Pods, but one has been recreated
+Explore the ReplicaSet created:
+
+        kubectl get rs -o wide
+
+![alt text](images/22.22.png)
+
