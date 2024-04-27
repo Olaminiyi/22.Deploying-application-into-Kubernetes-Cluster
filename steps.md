@@ -33,7 +33,8 @@ Implementing the deployment of software applications using YAML manifest files, 
     - Ingress Controllers (Nginx)
     - Cert-Manager
     - Ingress configurations for Jenkins and the primary application
-    - Deploying Monitoring Tools, such as Prometheus and Grafana.
+
+- Deploying Monitoring Tools, such as Prometheus and Grafana.
 
  Exploring the concept of Hybrid CI/CD by integrating various tools like Gitlab CI/- CD and Jenkins. Additionally, we'll delve into GitOps principles using Weaveworks Flux.
 
@@ -53,3 +54,112 @@ However, there is usually strong reasons why organisations with very strict comp
 Some setup options can combine both public and private cloud together. For example, the master nodes, etcd clusters, and some worker nodes that run stateful applications can be configured in private datacentres, while worker nodes that require heavy computations and stateless applications can run in public clouds. This kind of hybrid architecture is ideal to satisfy compliance, while also benefiting from other public cloud capabilities.
 
 ![alt text](images/22.1.png)
+
+### install ekctl to interact with Amazon EKS cluster from command prompt
+- Install the Weaveworks Homebrew tap.
+            brew tap weaveworks/tap
+- Install or upgrade eksctl
+            brew install weaveworks/tap/eksctl
+- Test that your installation was successful with the following command. You must have eksctl 0.34.0 version or later.
+            eksctl version
+        
+ ![alt text](images/22.2.png)
+ ![alt text](images/22.3.png)
+ ![alt text](images/22.4.png)
+ ![alt text](images/22.5.png)
+
+
+- Create a cluster using eksctl
+
+            $ eksctl create cluster \
+            --name deploy2 \
+            --region us-east-1 \
+            --nodegroup-name worker \
+            --node-type t2.micro \
+            --nodes 2      
+
+![alt text](images/22.6.png)
+![alt text](images/22.7.png)
+
+- check for the resources created in the AWS console
+
+![alt text](images/22.8.png)
+![alt text](images/22.9.png)
+![alt text](images/22.10.png)
+![alt text](images/22.11.png)
+![alt text](images/22.12.png)
+![alt text](images/22.13.png)
+![alt text](images/22.14.png)
+
+- Connect to the cluster with the below command
+            $ aws eks --region us-east-1 update-kubeconfig --name deploy2
+ ![alt text](images/22.15.png)   
+
+
+
+- check the service 
+           kubectl get svc
+- check the nodes 
+           kubectl get node
+![alt text](images/22.16.png)
+
+## Step 2 : Creating A Pod For The Nginx Application
+
+### Understanding the common YAML fields for every Kubernetes object
+Every Kubernetes object includes object fields that govern the object’s configuration:
+
+- kind: Represents the type of kubernetes object created. It can be a Pod, DaemonSet, Deployments or Service.
+- version: Kubernetes api version used to create the resource, it can be v1, v1beta and v2. Some of the kubernetes features can be released under beta and available for general public usage.
+- metadata: provides information about the resource like name of the Pod, namespace under which the Pod will be running, labels and annotations.
+- spec: consists of the core information about Pod. Here we will tell kubernetes what would be the expected state of resource, Like container image, number of replicas, environment variables and volumes.
+- status: consists of information about the running object, status of each container. Status field is supplied and updated by Kubernetes after creation. This is not something you will have to put in the YAML manifest.
+
+### Deploying a random Pod
+Lets see what it looks like to have a Pod running in a k8s cluster. This section is just to illustrate and get you to familiarise with how the object’s fields work. Lets deploy a basic Nginx container to run inside a Pod.
+
+- apiVersion is v1
+- kind is Pod
+- metatdata has a name which is set to nginx-pod
+- The spec section has further information about the Pod. Where to find the image to run the container – (This defaults to Docker Hub), the port and protocol.
+
+The structure is similar for any Kubernetes objects, and you will get to see them all as we progress.
+- Create a Pod yaml manifest name nginx-pod.yaml
+
+                apiVersion: v1
+                kind: Pod
+                metadata:
+                name: nginx-pod
+                labels: 
+                    app: nginx-pod
+                spec:
+                containers:
+                - image: nginx:latest
+                    name: nginx-pod
+                    ports:
+                    - containerPort: 80
+                    protocol: TCP
+              
+
+- Apply the manifest with the help of kubectl
+                    kubectl apply -f nginx-pod.yaml
+
+- Get an output of the pods running in the cluster
+                    kubectl get pods
+
+![alt text](images/22.17.png)
+
+### Note: pods status was pending for a long period of time when i ran kubectl get pods command.
+### i checked further with kubectl describe pod nginx-pod command, there was "Scheduling error"
+### i deleted the cluster and created a new cluster with 2 nodes and it was sorted
+
+To see other fields introduced by kubernetes after you have deployed the resource, simply run below command, and examine the output. You will see other fields that kubernetes updates from time to time to represent the state of the resource within the cluster. -o simply means the output format.
+
+                    kubectl get pod nginx-pod -o yaml 
+
+![alt text](images/22.18.png)
+ 
+
+                    kubectl describe pod nginx-pod
+
+![alt text](images/22.19.png)
+![alt text](images/22.20.png)
