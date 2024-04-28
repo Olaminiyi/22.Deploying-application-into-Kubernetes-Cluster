@@ -597,3 +597,109 @@ An ELB resource will be created in your AWS console.
 A Kubernetes component in the control plane called Cloud-controller-manager is responsible for triggering this action. It connects to your specific cloud provider’s (AWS) APIs and create resources such as Load balancers. It will ensure that the resource is appropriately tagged:
 
 ![alt text](images/22.44.png)
+
+Get the output of the entire yaml for the service. You will see some additional information about this service in which you did not define them in the yaml manifest. Kubernetes did this for you.
+
+            kubectl get service nginx-service -o yaml
+
+![alt text](images/22.45.png)
+
+- A clusterIP key is updated in the manifest and assigned an IP address. Even though you have specified a Loadbalancer service type, internally it still requires a clusterIP to route the external traffic through.
+- In the ports section, nodePort is still used. This is because Kubernetes still needs to use a dedicated port on the worker node to route the traffic through. Ensure that port range 30000-33767 is opened in your inbound Security Group configuration.
+- More information about the provisioned loadbalancer is also published in the .status.loadBalancer field.
+
+        status:
+        loadBalancer:
+            ingress:
+            - hostname: a612bb9d7fa8141ac9ec93b5e43abf15-289141373.us-east-1.elb.amazonaws.com
+
+Copy and paste the load balancer’s address to the browser, and you will access the Nginx service
+
+![alt text](images/22.46.png)
+![alt text](images/22.47.png)
+![alt text](images/22.48.png)
+
+Now, as we have got acquaited with most common Kubernetes workloads to deploy applications:
+
+![alt text](images/22.49.png)
+
+it is time to explore how Kubernetes is able to manage persistent data.
+
+### Step 7: Persisting data for pods
+
+Deployments are stateless by design. Hence, any data stored inside the Pod’s container does not persist when the Pod dies.
+
+If you were to update the content of the index.html file inside the container, and the Pod dies, that content will not be lost since a new Pod will replace the dead one.
+
+Let us try that:
+- Scale the Pods down to 1 replica.
+
+![alt text](images/22.50.png)
+
+- Exec into the running container 
+
+            kubectl exec -it nginx-deployment-fc79b9898-4btkd -- bash
+
+- Install vim so that you can edit the file
+
+            apt-get update
+            apt-get install vim
+
+Update the content of the file and add the code below /usr/share/nginx/html/index.html
+
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <title>Welcome to DAREY.IO!</title>
+                <style>
+                    body {
+                        width: 35em;
+                        margin: 0 auto;
+                        font-family: Tahoma, Verdana, Arial, sans-serif;
+                    }
+                </style>
+                </head>
+                <body>
+                <h1>Welcome to DAREY.IO!</h1>
+                <p>I love experiencing Kubernetes</p>
+
+                <p>Learning by doing is absolutely the best strategy at 
+                <a href="https://darey.io/">www.darey.io</a>.<br/>
+                for skills acquisition
+                <a href="https://darey.io/">www.darey.io</a>.</p>
+
+                <p><em>Thank you for learning from DAREY.IO</em></p>
+                </body>
+                </html>
+
+![alt text](images/22.51.png)
+![alt text](images/22.52.png)
+
+- Check the browser – You should see this
+
+![alt text](images/22.53.png)
+
+- Now, delete the only running Pod
+
+![alt text](images/22.54.png)
+
+
+Refresh the web page – You will see that the content you saved in the container is no longer there. That is because Pods do not store data when they are being recreated – that is why they are called ephemeral or stateless. (But not to worry, we will address this with persistent volumes in the next project)
+
+Storage is a critical part of running containers, and Kubernetes offers some powerful primitives for managing it. Dynamic volume provisioning, a feature unique to Kubernetes, which allows storage volumes to be created on-demand. Without dynamic provisioning, DevOps engineers must manually make calls to the cloud or storage provider to create new storage volumes, and then create PersistentVolume objects to represent them in Kubernetes. The dynamic provisioning feature eliminates the need for DevOps to pre-provision storage. Instead, it automatically provisions storage when it is requested by users.
+
+To make the data persist in case of a Pod’s failure, you will need to configure the Pod to use following objects:
+
+- Persistent Volume or pv – is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes.
+- Persistent Volume Claim or pvc. Persistent Volume Claim is simply a request for storage, hence the "claim" in its name.
+But where is it requesting this storage from?..
+
+In the next project,
+
+- You will use Terraform to create a Kubernetes EKS cluster in AWS, and begin to use some powerful features such as PV, PVCs, ConfigMaps.
+- You will also be introduced to packaging Kubernetes manifests using Helm
+- Experience Dynamic provisioning of volumes to make your Pods stateful, using Kubernetes Statefulset
+Deploying applications into Kubernetes using Helm Charts And many more awesome technologies
+
+
+- Thank you
